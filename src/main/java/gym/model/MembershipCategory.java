@@ -42,6 +42,6 @@ public enum MembershipCategory {
                 return category;
             }
         }
-        return BASIC; // Default
+        return BASIC; 
     }
 }
