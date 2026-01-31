@@ -2,11 +2,7 @@ package gym.factory;
 
 import gym.repository.*;
 
-/**
- * Design Pattern: Factory
- * SOLID: Open/Closed Principle - extend without modifying
- * REQUIREMENT 2: Design Patterns
- */
+
 public class RepositoryFactory {
     private static RepositoryFactory instance;
 
