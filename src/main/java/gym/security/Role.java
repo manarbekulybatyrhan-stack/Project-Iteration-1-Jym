@@ -3,10 +3,7 @@ package gym.security;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * SOLID: Single Responsibility - defines roles and permissions
- * REQUIREMENT 5: Role Management
- */
+
 public enum Role {
     ADMIN(Arrays.asList("VIEW_ALL", "ADD", "DELETE", "UPDATE")),
     MANAGER(Arrays.asList("VIEW_ALL", "ADD", "UPDATE")),
