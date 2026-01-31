@@ -2,11 +2,7 @@ package gym.dto;
 
 import java.time.LocalDateTime;
 
-/**
- * REQUIREMENT 1: JOINs - Combines data from 4 tables
- * Tables: TrainingSession + Member + Trainer + Membership
- * SOLID: Single Responsibility - data transfer only
- */
+
 public class FullTrainingSessionDTO {
     private int sessionId;
     private int memberId;
