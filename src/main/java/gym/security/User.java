@@ -1,9 +1,6 @@
 package gym.security;
 
-/**
- * SOLID: Single Responsibility - user authentication only
- * REQUIREMENT 5: Role Management
- */
+
 public class User {
     private int userId;
     private String username;
