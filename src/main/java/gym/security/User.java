@@ -16,7 +16,6 @@ public class User {
         this.active = true;
     }
 
-    // Lambda: Check if user has permission (used in SecurityFilter)
     public boolean hasPermission(String action) {
         return role.getPermissions().stream()
                 .anyMatch(perm -> perm.equals(action));
