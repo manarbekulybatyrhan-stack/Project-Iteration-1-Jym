@@ -31,6 +31,6 @@ public enum SessionCategory {
                 return category;
             }
         }
-        return CARDIO; // Default
+        return CARDIO; 
     }
 }
