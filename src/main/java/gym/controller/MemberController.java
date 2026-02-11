@@ -1,15 +1,15 @@
 package gym.controller;
 
 import gym.model.Member;
-import gym.model.Membership;
 import gym.repository.MemberRepository;
+import gym.repository.impl.MemberRepositoryImpl;
 import gym.repository.MembershipRepository;
 
 import java.time.LocalDate;
 import java.util.List;
 
+import gym.repository.impl.MembershipRepositoryImpl;
 import gym.validation.ValidationService;
-import gym.validation.*;
 
 import gym.validation.CustomExceptions.*;
 
@@ -18,8 +18,8 @@ public class MemberController {
     private MembershipRepository membershipRepository;
 
     public MemberController() {
-        this.memberRepository = new MemberRepository();
-        this.membershipRepository = new MembershipRepository();
+        this.memberRepository = new MemberRepositoryImpl();
+        this.membershipRepository = new MembershipRepositoryImpl();
     }
 
     public void registerMember(String name, String email, String phone, int membershipId) {

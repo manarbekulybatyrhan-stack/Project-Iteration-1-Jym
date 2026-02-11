@@ -1,7 +1,14 @@
 package gym.factory;
 
-import gym.repository.*;
 
+import gym.repository.MemberRepository;
+import gym.repository.MembershipRepository;
+import gym.repository.TrainerRepository;
+import gym.repository.TrainingSessionRepository;
+import gym.repository.impl.MemberRepositoryImpl;
+import gym.repository.impl.MembershipRepositoryImpl;
+import gym.repository.impl.TrainerRepositoryImpl;
+import gym.repository.impl.TrainingSessionRepositoryImpl;
 
 public class RepositoryFactory {
     private static RepositoryFactory instance;
@@ -16,18 +23,18 @@ public class RepositoryFactory {
     }
 
     public MemberRepository createMemberRepository() {
-        return new MemberRepository();
+        return new MemberRepositoryImpl();
     }
 
     public TrainerRepository createTrainerRepository() {
-        return new TrainerRepository();
+        return new TrainerRepositoryImpl();
     }
 
     public MembershipRepository createMembershipRepository() {
-        return new MembershipRepository();
+        return new MembershipRepositoryImpl();
     }
 
     public TrainingSessionRepository createTrainingSessionRepository() {
-        return new TrainingSessionRepository();
+        return new TrainingSessionRepositoryImpl();
     }
 }

@@ -1,62 +1,75 @@
 package gym.controller;
 
-import gym.model.Member;
-import gym.model.Trainer;
+import gym.dto.FullTrainingSessionDTO;
 import gym.model.TrainingSession;
 import gym.repository.MemberRepository;
 import gym.repository.TrainerRepository;
 import gym.repository.TrainingSessionRepository;
+import gym.repository.impl.MemberRepositoryImpl;
+import gym.repository.impl.TrainerRepositoryImpl;
+import gym.repository.impl.TrainingSessionRepositoryImpl;
+import gym.validation.ValidationService;
+// Импортируем конкретное исключение, если оно в отдельном файле или в классе
+import gym.validation.CustomExceptions.InvalidDurationException;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import gym.validation.ValidationService;
-import gym.dto.FullTrainingSessionDTO;
-import gym.validation.*;
-
-import gym.validation.CustomExceptions.*;
-
 public class TrainingSessionController {
-    private TrainingSessionRepository sessionRepository;
-    private MemberRepository memberRepository;
-    private TrainerRepository trainerRepository;
+    // Используем интерфейсы для полей (хорошая практика)
+    private final TrainingSessionRepository sessionRepository;
+    private final MemberRepository memberRepository;
+    private final TrainerRepository trainerRepository;
 
     public TrainingSessionController() {
-        this.sessionRepository = new TrainingSessionRepository();
-        this.memberRepository = new MemberRepository();
-        this.trainerRepository = new TrainerRepository();
+        this.sessionRepository = new TrainingSessionRepositoryImpl();
+        this.memberRepository = new MemberRepositoryImpl();
+        this.trainerRepository = new TrainerRepositoryImpl();
     }
 
-    public void bookSession(int memberId, int trainerId, LocalDateTime dateTime, 
-                       int duration, String type) {
+    public void bookSession(int memberId, int trainerId, LocalDateTime dateTime,
+                            int duration, String type) {
         ValidationService validator = ValidationService.getInstance();
-        
+
         try {
-            // Validate duration
+            // 1. Сначала валидация
             validator.validateDuration(duration);
-            
+
+            // 2. Получаем ID
+            int newId = sessionRepository.getNextId();
+
+            // 3. Создаем объект (Здесь была ошибка!)
+            // Убедись, что в TrainingSession есть конструктор для этих 6 параметров
             TrainingSession session = new TrainingSession(
-                sessionRepository.getNextId(), memberId, trainerId, dateTime, duration, type
+                    newId,
+                    memberId,
+                    trainerId,
+                    dateTime,
+                    duration,
+                    type
             );
+
+            // 4. Сохраняем
             sessionRepository.add(session);
-            System.out.println("✓ Session booked successfully!");
-            
+            System.out.println("✓ Session booked successfully! ID: " + newId);
+
         } catch (InvalidDurationException e) {
             System.out.println("✗ Validation Error: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("✗ Unexpected Error: " + e.getMessage());
         }
     }
 
     public void displaySessionDetails(int sessionId) {
-        FullTrainingSessionDTO fullSession = 
-            sessionRepository.getFullSessionDescription(sessionId);
-        
+        FullTrainingSessionDTO fullSession =
+                sessionRepository.getFullSessionDescription(sessionId);
+
         if (fullSession != null) {
             System.out.println("\n=== COMPLETE SESSION DETAILS ===");
-            System.out.println(fullSession);
+            System.out.println(fullSession); // toString() должен быть переопределен в DTO
             System.out.println("================================");
         } else {
-            System.out.println("Session not found!");
+            System.out.println("Session with ID " + sessionId + " not found!");
         }
     }
 
@@ -65,69 +78,54 @@ public class TrainingSessionController {
 
         if (sessions.isEmpty()) {
             System.out.println("No training sessions found.");
-
             return;
         }
 
-        System.out.println("\nTraining Sessions:");
-        System.out.println("ID | Member ID | Trainer ID | Date | Duration | Type");
-        System.out.println("------------------------------------------------");
-
-        for (TrainingSession s : sessions) {
-            System.out.println(s.getId() + " | " + s.getMemberId() + " | " + 
-                s.getTrainerId() + " | " + s.getSessionDate() + " | " + 
-                s.getDurationMinutes() + " min | " + s.getType());
-        }
+        printSessionTable(sessions, "All Training Sessions");
     }
-
 
     public void displayMemberSessions(int memberId) {
         List<TrainingSession> sessions = sessionRepository.findByMemberId(memberId);
 
         if (sessions.isEmpty()) {
-            System.out.println("No sessions found for this member.");
-
-            return;
+            System.out.println("No sessions found for member ID: " + memberId);
+        } else {
+            printSessionTable(sessions, "Member's Training Sessions");
         }
-
-        System.out.println("\nMember's Training Sessions:");
-        System.out.println("ID | Trainer ID | Date | Duration | Type");
-        System.out.println("------------------------------------------------");
-
-        for (TrainingSession s : sessions) {
-            System.out.println(s.getId() + " | " + s.getTrainerId() + " | " + 
-                s.getSessionDate() + " | " + s.getDurationMinutes() + " min | " + s.getType());
-        }
-
-        System.out.println("\nTotal sessions: " + sessions.size());
     }
-
 
     public void displayTrainerSessions(int trainerId) {
         List<TrainingSession> sessions = sessionRepository.findByTrainerId(trainerId);
 
         if (sessions.isEmpty()) {
-            System.out.println("No sessions found for this trainer.");
-
-            return;
+            System.out.println("No sessions found for trainer ID: " + trainerId);
+        } else {
+            printSessionTable(sessions, "Trainer's Training Sessions");
         }
-
-        System.out.println("\nTrainer's Training Sessions:");
-        System.out.println("ID | Member ID | Date | Duration | Type");
-        System.out.println("------------------------------------------------");
-
-        for (TrainingSession s : sessions) {
-            System.out.println(s.getId() + " | " + s.getMemberId() + " | " + 
-                s.getSessionDate() + " | " + s.getDurationMinutes() + " min | " + s.getType());
-        }
-
-        System.out.println("\nTotal sessions: " + sessions.size());
     }
 
-
     public void deleteSession(int id) {
-        sessionRepository.delete(id);
+        // Желательно сначала проверить, существует ли сессия
+        if (sessionRepository.getFullSessionDescription(id) != null) {
+            sessionRepository.delete(id);
+            System.out.println("Training session " + id + " deleted successfully.");
+        } else {
+            System.out.println("Cannot delete: Session " + id + " not found.");
+        }
+    }
 
-        System.out.println("Training session deleted successfully.");
+    // Вспомогательный метод, чтобы не дублировать код вывода таблицы
+    private void printSessionTable(List<TrainingSession> sessions, String title) {
+        System.out.println("\n" + title + ":");
+        System.out.printf("%-5s | %-10s | %-10s | %-20s | %-10s | %-15s%n",
+                "ID", "Member ID", "Trainer ID", "Date", "Duration", "Type");
+        System.out.println("--------------------------------------------------------------------------------");
+
+        for (TrainingSession s : sessions) {
+            System.out.printf("%-5d | %-10d | %-10d | %-20s | %-10d | %-15s%n",
+                    s.getId(), s.getMemberId(), s.getTrainerId(),
+                    s.getSessionDate(), s.getDurationMinutes(), s.getType());
+        }
+        System.out.println("Total: " + sessions.size());
     }
 }

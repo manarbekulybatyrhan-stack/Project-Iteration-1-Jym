@@ -2,6 +2,7 @@ package gym.controller;
 
 import gym.model.Trainer;
 import gym.repository.TrainerRepository;
+import gym.repository.impl.TrainerRepositoryImpl;
 
 import java.util.List;
 
@@ -9,7 +10,7 @@ public class TrainerController {
     private TrainerRepository trainerRepository;
 
     public TrainerController() {
-        this.trainerRepository = new TrainerRepository();
+        this.trainerRepository = new TrainerRepositoryImpl();
     }
 
     public void addTrainer(String name, String specialization, String email, String phone) {

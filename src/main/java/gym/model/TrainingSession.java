@@ -13,7 +13,9 @@ public class TrainingSession {
 
     public TrainingSession() {}
 
-    public TrainingSession(int id, int memberId, int trainerId, LocalDateTime sessionDate, int durationMinutes, String type) {
+    // === ВСТАВИТЬ ЭТО В ФАЙЛ TrainingSession.java ===
+
+    public TrainingSession(int id, int memberId, int trainerId, java.time.LocalDateTime sessionDate, int durationMinutes, String type) {
         this.id = id;
         this.memberId = memberId;
         this.trainerId = trainerId;
@@ -22,7 +24,7 @@ public class TrainingSession {
         this.type = type;
     }
 
-    // Геттеры и сеттеры
+
     public int getId() {
         return id;
     }

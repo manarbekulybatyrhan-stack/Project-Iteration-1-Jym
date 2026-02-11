@@ -1,207 +1,29 @@
 package gym.repository;
 
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import gym.config.DatabaseConfig;
 import gym.model.Member;
-import gym.validation.ValidationService;
 
-public class MemberRepository {
-    private List<Member> members = new ArrayList<>();
+import java.util.List;
 
-    public void add(Member member) {
-        create(member);
-    }
+public interface MemberRepository {
+    void add(Member member);
 
-    public int getNextId() {
-        return findAll().stream().mapToInt(Member::getId).max().orElse(0) + 1;
-    }
+    int getNextId();
 
-    public void create(Member member) {
-        String sql = "INSERT INTO members (name, email, phone, membership_id, join_date, expiry_date) VALUES (?, ?, ?, ?, ?, ?)";
+    void create(Member member);
 
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+    Member findById(int id);
 
-            stmt.setString(1, member.getName());
-            stmt.setString(2, member.getEmail());
-            stmt.setString(3, member.getPhone());
-            stmt.setInt(4, member.getMembershipId());
-            stmt.setDate(5, Date.valueOf(member.getJoinDate()));
-            stmt.setDate(6, Date.valueOf(member.getExpiryDate()));
+    List<Member> findAll();
 
-            stmt.executeUpdate();
+    void update(Member member);
 
-            ResultSet rs = stmt.getGeneratedKeys();
+    void delete(int id);
 
-            if (rs.next()) {
-                member.setId(rs.getInt(1));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
+    List<Member> findActiveMembers();
 
-    public Member findById(int id) {
-        String sql = "SELECT * FROM members WHERE id = ?";
+    List<Member> getValidatedMembers() throws Exception;
 
-        Member member = null;
+    List<Member> getActiveMembers();
 
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                member = new Member(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("email"),
-                    rs.getString("phone"),
-                    rs.getInt("membership_id"),
-                    rs.getDate("join_date").toLocalDate(),
-                    rs.getDate("expiry_date").toLocalDate()
-                );
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return member;
-    }
-
-
-    public List<Member> findAll() {
-        String sql = "SELECT * FROM members";
-
-        List<Member> members = new ArrayList<>();
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                Member member = new Member(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("email"),
-                    rs.getString("phone"),
-                    rs.getInt("membership_id"),
-                    rs.getDate("join_date").toLocalDate(),
-                    rs.getDate("expiry_date").toLocalDate()
-                );
-
-                members.add(member);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return members;
-    }
-
-
-    public void update(Member member) {
-        String sql = "UPDATE members SET name = ?, email = ?, phone = ?, membership_id = ?, join_date = ?, expiry_date = ? WHERE id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, member.getName());
-            stmt.setString(2, member.getEmail());
-            stmt.setString(3, member.getPhone());
-            stmt.setInt(4, member.getMembershipId());
-            stmt.setDate(5, Date.valueOf(member.getJoinDate()));
-            stmt.setDate(6, Date.valueOf(member.getExpiryDate()));
-            stmt.setInt(7, member.getId());
-
-            stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public void delete(int id) {
-        String sql = "DELETE FROM members WHERE id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-            stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public List<Member> findActiveMembers() {
-        String sql = "SELECT * FROM members WHERE expiry_date >= CURRENT_DATE";
-
-        List<Member> members = new ArrayList<>();
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                Member member = new Member(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("email"),
-                    rs.getString("phone"),
-                    rs.getInt("membership_id"),
-                    rs.getDate("join_date").toLocalDate(),
-                    rs.getDate("expiry_date").toLocalDate()
-                );
-
-                members.add(member);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return members;
-    }
-
-    public List<Member> getValidatedMembers() throws Exception {
-        ValidationService validator = ValidationService.getInstance();
-        
-        // Lambda: Filter validated members
-        return members.stream()
-                .filter(m -> {
-                    try {
-                        return m.isValidEmail() && m.isValidPhone();
-                    } catch (Exception e) {
-                        return false;
-                    }
-                })
-                .collect(Collectors.toList());
-    }
-
-    public List<Member> getActiveMembers() {
-        return findAll().stream() 
-                .filter(m -> m.isActive()) 
-                .sorted((m1, m2) -> m1.getName().compareTo(m2.getName()))
-                .collect(Collectors.toList());
-    }
-
-    public Member findByEmail(String email) {
-        return members.stream()
-                .filter(m -> m.getEmail().equalsIgnoreCase(email))
-                .findFirst()
-                .orElse(null);
-    }
+    Member findByEmail(String email);
 }

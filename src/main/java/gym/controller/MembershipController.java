@@ -2,6 +2,7 @@ package gym.controller;
 
 import gym.model.Membership;
 import gym.repository.MembershipRepository;
+import gym.repository.impl.MembershipRepositoryImpl;
 
 import java.util.List;
 
@@ -9,7 +10,7 @@ public class MembershipController {
     private MembershipRepository membershipRepository;
 
     public MembershipController() {
-        this.membershipRepository = new MembershipRepository();
+        this.membershipRepository = new MembershipRepositoryImpl();
     }
 
     public void addMembership(String type, int durationMonths, double price) {
