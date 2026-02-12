@@ -1,55 +1,51 @@
 package gym.controller;
 
 import gym.dto.FullTrainingSessionDTO;
+import gym.factory.RepositoryFactory;
+import gym.model.SessionCategory;
 import gym.model.TrainingSession;
 import gym.repository.MemberRepository;
 import gym.repository.TrainerRepository;
 import gym.repository.TrainingSessionRepository;
-import gym.repository.impl.MemberRepositoryImpl;
-import gym.repository.impl.TrainerRepositoryImpl;
-import gym.repository.impl.TrainingSessionRepositoryImpl;
-import gym.validation.ValidationService;
-// Импортируем конкретное исключение, если оно в отдельном файле или в классе
 import gym.validation.CustomExceptions.InvalidDurationException;
+import gym.validation.ValidationService;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public class TrainingSessionController {
-    // Используем интерфейсы для полей (хорошая практика)
+
     private final TrainingSessionRepository sessionRepository;
     private final MemberRepository memberRepository;
     private final TrainerRepository trainerRepository;
 
     public TrainingSessionController() {
-        this.sessionRepository = new TrainingSessionRepositoryImpl();
-        this.memberRepository = new MemberRepositoryImpl();
-        this.trainerRepository = new TrainerRepositoryImpl();
+        RepositoryFactory factory = RepositoryFactory.getInstance();
+        this.sessionRepository = factory.createTrainingSessionRepository();
+        this.memberRepository = factory.createMemberRepository();
+        this.trainerRepository = factory.createTrainerRepository();
     }
 
-    public void bookSession(int memberId, int trainerId, LocalDateTime dateTime,
-                            int duration, String type) {
+    public void bookSession(int memberId, int trainerId, LocalDateTime dateTime, int duration, String type) {
         ValidationService validator = ValidationService.getInstance();
 
         try {
-            // 1. Сначала валидация
             validator.validateDuration(duration);
 
-            // 2. Получаем ID
             int newId = sessionRepository.getNextId();
 
-            // 3. Создаем объект (Здесь была ошибка!)
-            // Убедись, что в TrainingSession есть конструктор для этих 6 параметров
+            SessionCategory category = parseCategory(type);
+
             TrainingSession session = new TrainingSession(
                     newId,
                     memberId,
                     trainerId,
                     dateTime,
                     duration,
-                    type
+                    type,
+                    category
             );
 
-            // 4. Сохраняем
             sessionRepository.add(session);
             System.out.println("✓ Session booked successfully! ID: " + newId);
 
@@ -61,12 +57,11 @@ public class TrainingSessionController {
     }
 
     public void displaySessionDetails(int sessionId) {
-        FullTrainingSessionDTO fullSession =
-                sessionRepository.getFullSessionDescription(sessionId);
+        FullTrainingSessionDTO fullSession = sessionRepository.getFullSessionDescription(sessionId);
 
         if (fullSession != null) {
             System.out.println("\n=== COMPLETE SESSION DETAILS ===");
-            System.out.println(fullSession); // toString() должен быть переопределен в DTO
+            System.out.println(fullSession);
             System.out.println("================================");
         } else {
             System.out.println("Session with ID " + sessionId + " not found!");
@@ -105,8 +100,9 @@ public class TrainingSessionController {
     }
 
     public void deleteSession(int id) {
-        // Желательно сначала проверить, существует ли сессия
-        if (sessionRepository.getFullSessionDescription(id) != null) {
+        TrainingSession existing = sessionRepository.findById(id);
+
+        if (existing != null) {
             sessionRepository.delete(id);
             System.out.println("Training session " + id + " deleted successfully.");
         } else {
@@ -114,18 +110,33 @@ public class TrainingSessionController {
         }
     }
 
-    // Вспомогательный метод, чтобы не дублировать код вывода таблицы
     private void printSessionTable(List<TrainingSession> sessions, String title) {
         System.out.println("\n" + title + ":");
-        System.out.printf("%-5s | %-10s | %-10s | %-20s | %-10s | %-15s%n",
-                "ID", "Member ID", "Trainer ID", "Date", "Duration", "Type");
-        System.out.println("--------------------------------------------------------------------------------");
+        System.out.printf("%-5s | %-10s | %-10s | %-20s | %-10s | %-15s | %-12s%n",
+                "ID", "Member ID", "Trainer ID", "Date", "Duration", "Type", "Category");
+        System.out.println("---------------------------------------------------------------------------------------------------");
 
         for (TrainingSession s : sessions) {
-            System.out.printf("%-5d | %-10d | %-10d | %-20s | %-10d | %-15s%n",
-                    s.getId(), s.getMemberId(), s.getTrainerId(),
-                    s.getSessionDate(), s.getDurationMinutes(), s.getType());
+            System.out.printf("%-5d | %-10d | %-10d | %-20s | %-10d | %-15s | %-12s%n",
+                    s.getId(),
+                    s.getMemberId(),
+                    s.getTrainerId(),
+                    s.getSessionDate(),
+                    s.getDurationMinutes(),
+                    s.getType(),
+                    s.getCategory()
+            );
         }
         System.out.println("Total: " + sessions.size());
+    }
+
+    private SessionCategory parseCategory(String type) {
+        if (type == null) return SessionCategory.CARDIO;
+        String t = type.trim().toUpperCase();
+        try {
+            return SessionCategory.valueOf(t);
+        } catch (Exception e) {
+            return SessionCategory.CARDIO;
+        }
     }
 }

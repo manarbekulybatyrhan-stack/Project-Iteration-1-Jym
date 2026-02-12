@@ -9,21 +9,24 @@ public class TrainingSession {
     private LocalDateTime sessionDate;
     private int durationMinutes;
     private String type;
-    private SessionCategory category; 
+    private SessionCategory category;
 
-    public TrainingSession() {}
+    public TrainingSession() {
+    }
 
-    // === ВСТАВИТЬ ЭТО В ФАЙЛ TrainingSession.java ===
+    public TrainingSession(int id, int memberId, int trainerId, LocalDateTime sessionDate, int durationMinutes, String type) {
+        this(id, memberId, trainerId, sessionDate, durationMinutes, type, null);
+    }
 
-    public TrainingSession(int id, int memberId, int trainerId, java.time.LocalDateTime sessionDate, int durationMinutes, String type) {
+    public TrainingSession(int id, int memberId, int trainerId, LocalDateTime sessionDate, int durationMinutes, String type, SessionCategory category) {
         this.id = id;
         this.memberId = memberId;
         this.trainerId = trainerId;
         this.sessionDate = sessionDate;
         this.durationMinutes = durationMinutes;
         this.type = type;
+        this.category = category;
     }
-
 
     public int getId() {
         return id;
@@ -49,11 +52,6 @@ public class TrainingSession {
         this.trainerId = trainerId;
     }
 
-    // Алиас для репозитория (чтобы работали старые вызовы)
-    public LocalDateTime getDateTime() {
-        return this.sessionDate; 
-    }
-
     public LocalDateTime getSessionDate() {
         return sessionDate;
     }
@@ -62,9 +60,8 @@ public class TrainingSession {
         this.sessionDate = sessionDate;
     }
 
-    // Алиас для репозитория
-    public int getDuration() {
-        return this.durationMinutes; 
+    public LocalDateTime getDateTime() {
+        return getSessionDate();
     }
 
     public int getDurationMinutes() {
@@ -73,6 +70,10 @@ public class TrainingSession {
 
     public void setDurationMinutes(int durationMinutes) {
         this.durationMinutes = durationMinutes;
+    }
+
+    public int getDuration() {
+        return getDurationMinutes();
     }
 
     public String getType() {
@@ -91,3 +92,4 @@ public class TrainingSession {
         this.category = category;
     }
 }
+

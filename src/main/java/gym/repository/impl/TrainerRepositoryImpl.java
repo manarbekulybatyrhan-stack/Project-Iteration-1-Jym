@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TrainerRepositoryImpl implements TrainerRepository {
+
     @Override
     public void create(Trainer trainer) {
         String sql = "INSERT INTO trainers (name, specialization, email, phone) VALUES (?, ?, ?, ?)";
@@ -23,44 +24,38 @@ public class TrainerRepositoryImpl implements TrainerRepository {
 
             stmt.executeUpdate();
 
-            ResultSet rs = stmt.getGeneratedKeys();
-
-            if (rs.next()) {
-                trainer.setId(rs.getInt(1));
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    trainer.setId(rs.getInt(1));
+                }
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-
     @Override
     public Trainer findById(int id) {
         String sql = "SELECT * FROM trainers WHERE id = ?";
-        Trainer trainer = null;
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
 
-            if (rs.next()) {
-                trainer = new Trainer(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("specialization"),
-                    rs.getString("email"),
-                    rs.getString("phone")
-                );
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return trainer;
+        return null;
     }
-
 
     @Override
     public List<Trainer> findAll() {
@@ -72,22 +67,15 @@ public class TrainerRepositoryImpl implements TrainerRepository {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                Trainer trainer = new Trainer(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("specialization"),
-                    rs.getString("email"),
-                    rs.getString("phone")
-                );
-                trainers.add(trainer);
+                trainers.add(mapRow(rs));
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
         return trainers;
     }
-
 
     @Override
     public void update(Trainer trainer) {
@@ -109,7 +97,6 @@ public class TrainerRepositoryImpl implements TrainerRepository {
         }
     }
 
-
     @Override
     public void delete(int id) {
         String sql = "DELETE FROM trainers WHERE id = ?";
@@ -118,11 +105,20 @@ public class TrainerRepositoryImpl implements TrainerRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
-
             stmt.executeUpdate();
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private Trainer mapRow(ResultSet rs) throws SQLException {
+        return new Trainer(
+                rs.getInt("id"),
+                rs.getString("name"),
+                rs.getString("specialization"),
+                rs.getString("email"),
+                rs.getString("phone")
+        );
     }
 }

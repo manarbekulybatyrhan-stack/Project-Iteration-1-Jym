@@ -13,10 +13,8 @@ import java.util.stream.Collectors;
 import gym.config.DatabaseConfig;
 import gym.model.Member;
 import gym.repository.MemberRepository;
-import gym.validation.ValidationService;
 
 public class MemberRepositoryImpl implements MemberRepository {
-    private List<Member> members = new ArrayList<>();
 
     @Override
     public void add(Member member) {
@@ -44,10 +42,10 @@ public class MemberRepositoryImpl implements MemberRepository {
 
             stmt.executeUpdate();
 
-            ResultSet rs = stmt.getGeneratedKeys();
-
-            if (rs.next()) {
-                member.setId(rs.getInt(1));
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    member.setId(rs.getInt(1));
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -58,37 +56,34 @@ public class MemberRepositoryImpl implements MemberRepository {
     public Member findById(int id) {
         String sql = "SELECT * FROM members WHERE id = ?";
 
-        Member member = null;
-
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
 
-            if (rs.next()) {
-                member = new Member(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("email"),
-                    rs.getString("phone"),
-                    rs.getInt("membership_id"),
-                    rs.getDate("join_date").toLocalDate(),
-                    rs.getDate("expiry_date").toLocalDate()
-                );
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Member(
+                            rs.getInt("id"),
+                            rs.getString("name"),
+                            rs.getString("email"),
+                            rs.getString("phone"),
+                            rs.getInt("membership_id"),
+                            rs.getDate("join_date").toLocalDate(),
+                            rs.getDate("expiry_date").toLocalDate()
+                    );
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return member;
+        return null;
     }
-
 
     @Override
     public List<Member> findAll() {
         String sql = "SELECT * FROM members";
-
         List<Member> members = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
@@ -96,17 +91,15 @@ public class MemberRepositoryImpl implements MemberRepository {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                Member member = new Member(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("email"),
-                    rs.getString("phone"),
-                    rs.getInt("membership_id"),
-                    rs.getDate("join_date").toLocalDate(),
-                    rs.getDate("expiry_date").toLocalDate()
-                );
-
-                members.add(member);
+                members.add(new Member(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("email"),
+                        rs.getString("phone"),
+                        rs.getInt("membership_id"),
+                        rs.getDate("join_date").toLocalDate(),
+                        rs.getDate("expiry_date").toLocalDate()
+                ));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -114,7 +107,6 @@ public class MemberRepositoryImpl implements MemberRepository {
 
         return members;
     }
-
 
     @Override
     public void update(Member member) {
@@ -132,12 +124,10 @@ public class MemberRepositoryImpl implements MemberRepository {
             stmt.setInt(7, member.getId());
 
             stmt.executeUpdate();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
-
 
     @Override
     public void delete(int id) {
@@ -148,17 +138,14 @@ public class MemberRepositoryImpl implements MemberRepository {
 
             stmt.setInt(1, id);
             stmt.executeUpdate();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-
     @Override
     public List<Member> findActiveMembers() {
         String sql = "SELECT * FROM members WHERE expiry_date >= CURRENT_DATE";
-
         List<Member> members = new ArrayList<>();
 
         try (Connection conn = DatabaseConfig.getConnection();
@@ -166,17 +153,15 @@ public class MemberRepositoryImpl implements MemberRepository {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                Member member = new Member(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("email"),
-                    rs.getString("phone"),
-                    rs.getInt("membership_id"),
-                    rs.getDate("join_date").toLocalDate(),
-                    rs.getDate("expiry_date").toLocalDate()
-                );
-
-                members.add(member);
+                members.add(new Member(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("email"),
+                        rs.getString("phone"),
+                        rs.getInt("membership_id"),
+                        rs.getDate("join_date").toLocalDate(),
+                        rs.getDate("expiry_date").toLocalDate()
+                ));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -186,11 +171,8 @@ public class MemberRepositoryImpl implements MemberRepository {
     }
 
     @Override
-    public List<Member> getValidatedMembers() throws Exception {
-        ValidationService validator = ValidationService.getInstance();
-        
-        // Lambda: Filter validated members
-        return members.stream()
+    public List<Member> getValidatedMembers() {
+        return findAll().stream()
                 .filter(m -> {
                     try {
                         return m.isValidEmail() && m.isValidPhone();
@@ -203,17 +185,38 @@ public class MemberRepositoryImpl implements MemberRepository {
 
     @Override
     public List<Member> getActiveMembers() {
-        return findAll().stream() 
-                .filter(m -> m.isActive()) 
+        return findAll().stream()
+                .filter(Member::isActive)
                 .sorted((m1, m2) -> m1.getName().compareTo(m2.getName()))
                 .collect(Collectors.toList());
     }
 
     @Override
     public Member findByEmail(String email) {
-        return members.stream()
-                .filter(m -> m.getEmail().equalsIgnoreCase(email))
-                .findFirst()
-                .orElse(null);
+        String sql = "SELECT * FROM members WHERE LOWER(email) = LOWER(?)";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, email);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Member(
+                            rs.getInt("id"),
+                            rs.getString("name"),
+                            rs.getString("email"),
+                            rs.getString("phone"),
+                            rs.getInt("membership_id"),
+                            rs.getDate("join_date").toLocalDate(),
+                            rs.getDate("expiry_date").toLocalDate()
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

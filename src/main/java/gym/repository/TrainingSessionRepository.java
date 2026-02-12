@@ -5,7 +5,8 @@ import gym.model.TrainingSession;
 
 import java.util.List;
 
-public interface TrainingSessionRepository {
+public interface
+ TrainingSessionRepository {
     void add(TrainingSession session);
 
     int getNextId();
@@ -26,6 +27,6 @@ public interface TrainingSessionRepository {
 
     FullTrainingSessionDTO getFullSessionDescription(int sessionId);
 
-    // Lambda: Get sessions by type with filter
+
     List<TrainingSession> getSessionsByType(String type);
 }
