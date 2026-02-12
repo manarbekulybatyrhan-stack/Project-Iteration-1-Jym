@@ -1,142 +1,100 @@
 package gym.controller;
 
-import gym.dto.FullTrainingSessionDTO;
-import gym.factory.RepositoryFactory;
-import gym.model.SessionCategory;
+import gym.model.Member;
+import gym.model.Trainer;
 import gym.model.TrainingSession;
+import gym.model.SessionCategory;
 import gym.repository.MemberRepository;
 import gym.repository.TrainerRepository;
 import gym.repository.TrainingSessionRepository;
-import gym.validation.CustomExceptions.InvalidDurationException;
+import gym.repository.impl.MemberRepositoryImpl;
+import gym.repository.impl.TrainerRepositoryImpl;
+import gym.repository.impl.TrainingSessionRepositoryImpl;
 import gym.validation.ValidationService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 public class TrainingSessionController {
+    private TrainingSessionRepository sessionRepository = new TrainingSessionRepositoryImpl();
+    private MemberRepository memberRepository = new MemberRepositoryImpl();
+    private TrainerRepository trainerRepository = new TrainerRepositoryImpl();
 
-    private final TrainingSessionRepository sessionRepository;
-    private final MemberRepository memberRepository;
-    private final TrainerRepository trainerRepository;
-
-    public TrainingSessionController() {
-        RepositoryFactory factory = RepositoryFactory.getInstance();
-        this.sessionRepository = factory.createTrainingSessionRepository();
-        this.memberRepository = factory.createMemberRepository();
-        this.trainerRepository = factory.createTrainerRepository();
-    }
-
-    public void bookSession(int memberId, int trainerId, LocalDateTime dateTime, int duration, String type) {
-        ValidationService validator = ValidationService.getInstance();
-
+    public void bookSession(int memberId, int trainerId, LocalDateTime sessionDate, int durationMinutes, String type, String category) {
         try {
-            validator.validateDuration(duration);
+            ValidationService.getInstance().validateDuration(durationMinutes);
 
-            int newId = sessionRepository.getNextId();
+            Member member = memberRepository.findById(memberId);
+            Trainer trainer = trainerRepository.findById(trainerId);
 
-            SessionCategory category = parseCategory(type);
+            if (member == null || trainer == null) {
+                System.out.println("Member or Trainer not found.");
+                return;
+            }
 
-            TrainingSession session = new TrainingSession(
-                    newId,
-                    memberId,
-                    trainerId,
-                    dateTime,
-                    duration,
-                    type,
-                    category
-            );
+            if (member.getExpiryDate().isBefore(LocalDate.now())) {
+                System.out.println("Membership expired. Cannot book session.");
+                return;
+            }
 
-            sessionRepository.add(session);
-            System.out.println("✓ Session booked successfully! ID: " + newId);
+            TrainingSession session = new TrainingSession();
+            session.setMemberId(memberId);
+            session.setTrainerId(trainerId);
+            session.setSessionDate(sessionDate);
+            session.setDurationMinutes(durationMinutes);
+            session.setCategory(gym.model.SessionCategory.valueOf(category.toUpperCase()));
+            session.setCategory(SessionCategory.valueOf(category.toUpperCase()));
 
-        } catch (InvalidDurationException e) {
-            System.out.println("✗ Validation Error: " + e.getMessage());
+            sessionRepository.create(session);
+            System.out.println("Session booked with ID: " + session.getId());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: Invalid category name.");
         } catch (Exception e) {
-            System.out.println("✗ Unexpected Error: " + e.getMessage());
-        }
-    }
-
-    public void displaySessionDetails(int sessionId) {
-        FullTrainingSessionDTO fullSession = sessionRepository.getFullSessionDescription(sessionId);
-
-        if (fullSession != null) {
-            System.out.println("\n=== COMPLETE SESSION DETAILS ===");
-            System.out.println(fullSession);
-            System.out.println("================================");
-        } else {
-            System.out.println("Session with ID " + sessionId + " not found!");
+            System.out.println("Validation Error: " + e.getMessage());
         }
     }
 
     public void displayAllSessions() {
         List<TrainingSession> sessions = sessionRepository.findAll();
-
         if (sessions.isEmpty()) {
-            System.out.println("No training sessions found.");
+            System.out.println("No sessions found.");
             return;
         }
-
-        printSessionTable(sessions, "All Training Sessions");
+        System.out.println("\nTraining Sessions:");
+        System.out.println("ID | Member ID | Trainer ID | Date | Duration | Type | Category");
+        System.out.println("----------------------------------------------------------------");
+        for (TrainingSession s : sessions) {
+            System.out.println(s.getId() + " | " + s.getMemberId() + " | " +
+                    s.getTrainerId() + " | " + s.getSessionDate() + " | " +
+                    s.getDurationMinutes() + " min | " + s.getType() + " | " + s.getCategory());
+        }
     }
 
     public void displayMemberSessions(int memberId) {
         List<TrainingSession> sessions = sessionRepository.findByMemberId(memberId);
-
         if (sessions.isEmpty()) {
-            System.out.println("No sessions found for member ID: " + memberId);
-        } else {
-            printSessionTable(sessions, "Member's Training Sessions");
+            System.out.println("No sessions found for this member.");
+            return;
+        }
+        for (TrainingSession s : sessions) {
+            System.out.println(s.getId() + " | " + s.getTrainerId() + " | " + s.getSessionDate() + " | " + s.getType() + " | " + s.getCategory());
         }
     }
 
     public void displayTrainerSessions(int trainerId) {
         List<TrainingSession> sessions = sessionRepository.findByTrainerId(trainerId);
-
         if (sessions.isEmpty()) {
-            System.out.println("No sessions found for trainer ID: " + trainerId);
-        } else {
-            printSessionTable(sessions, "Trainer's Training Sessions");
+            System.out.println("No sessions found for this trainer.");
+            return;
+        }
+        for (TrainingSession s : sessions) {
+            System.out.println(s.getId() + " | " + s.getMemberId() + " | " + s.getSessionDate() + " | " + s.getType() + " | " + s.getCategory());
         }
     }
 
     public void deleteSession(int id) {
-        TrainingSession existing = sessionRepository.findById(id);
-
-        if (existing != null) {
-            sessionRepository.delete(id);
-            System.out.println("Training session " + id + " deleted successfully.");
-        } else {
-            System.out.println("Cannot delete: Session " + id + " not found.");
-        }
-    }
-
-    private void printSessionTable(List<TrainingSession> sessions, String title) {
-        System.out.println("\n" + title + ":");
-        System.out.printf("%-5s | %-10s | %-10s | %-20s | %-10s | %-15s | %-12s%n",
-                "ID", "Member ID", "Trainer ID", "Date", "Duration", "Type", "Category");
-        System.out.println("---------------------------------------------------------------------------------------------------");
-
-        for (TrainingSession s : sessions) {
-            System.out.printf("%-5d | %-10d | %-10d | %-20s | %-10d | %-15s | %-12s%n",
-                    s.getId(),
-                    s.getMemberId(),
-                    s.getTrainerId(),
-                    s.getSessionDate(),
-                    s.getDurationMinutes(),
-                    s.getType(),
-                    s.getCategory()
-            );
-        }
-        System.out.println("Total: " + sessions.size());
-    }
-
-    private SessionCategory parseCategory(String type) {
-        if (type == null) return SessionCategory.CARDIO;
-        String t = type.trim().toUpperCase();
-        try {
-            return SessionCategory.valueOf(t);
-        } catch (Exception e) {
-            return SessionCategory.CARDIO;
-        }
+        sessionRepository.delete(id);
+        System.out.println("Session deleted successfully.");
     }
 }

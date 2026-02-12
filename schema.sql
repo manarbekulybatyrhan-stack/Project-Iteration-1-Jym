@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS memberships (
                                            id SERIAL PRIMARY KEY,
                                            type VARCHAR(50),
     duration_months INT,
-    price DECIMAL
+    price DECIMAL,
+    category VARCHAR(50) NOT NULL DEFAULT 'BASIC'
     );
 
 CREATE TABLE IF NOT EXISTS trainers (
@@ -29,36 +30,21 @@ CREATE TABLE IF NOT EXISTS training_sessions (
     trainer_id INT REFERENCES trainers(id),
     session_date TIMESTAMP,
     duration_minutes INT,
-    type VARCHAR(50)
+    type VARCHAR(50),
+    category VARCHAR(50) NOT NULL DEFAULT 'CARDIO'
     );
 
 CREATE TABLE IF NOT EXISTS users (
                                      id SERIAL PRIMARY KEY,
                                      username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    active BOOLEAN DEFAULT TRUE
     );
 
-ALTER TABLE memberships
-    ADD COLUMN IF NOT EXISTS category VARCHAR(50);
-
-ALTER TABLE training_sessions
-    ADD COLUMN IF NOT EXISTS category VARCHAR(50);
-
-UPDATE memberships
-SET category = 'BASIC'
-WHERE category IS NULL;
-
-UPDATE training_sessions
-SET category = 'CARDIO'
-WHERE category IS NULL;
-
-ALTER TABLE memberships
-    ALTER COLUMN category SET NOT NULL;
-
-ALTER TABLE training_sessions
-    ALTER COLUMN category SET NOT NULL;
-
+INSERT INTO users (username, password, role)
+VALUES ('admin', '0000', 'ADMIN')
+    ON CONFLICT (username) DO NOTHING;
 
 
 
