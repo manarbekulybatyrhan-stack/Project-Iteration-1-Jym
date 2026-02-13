@@ -12,14 +12,28 @@ import java.time.LocalDate;
 import java.util.List;
 
 public class MemberController {
-    private MemberRepository memberRepository = new MemberRepositoryImpl();
-    private MembershipRepository membershipRepository = new MembershipRepositoryImpl();
+
+    private final MemberRepository memberRepository;
+    private final MembershipRepository membershipRepository;
+    private final ValidationService validationService;
+
+    public MemberController() {
+        this(new MemberRepositoryImpl(), new MembershipRepositoryImpl(), ValidationService.getInstance());
+    }
+
+    public MemberController(MemberRepository memberRepository,
+                            MembershipRepository membershipRepository,
+                            ValidationService validationService) {
+        this.memberRepository = memberRepository;
+        this.membershipRepository = membershipRepository;
+        this.validationService = validationService;
+    }
 
     public void registerMember(String name, String email, String phone, int membershipId) {
         try {
-            ValidationService.getInstance().validateName(name);
-            ValidationService.getInstance().validateEmail(email);
-            ValidationService.getInstance().validatePhone(phone);
+            validationService.validateName(name);
+            validationService.validateEmail(email);
+            validationService.validatePhone(phone);
 
             Membership membership = membershipRepository.findById(membershipId);
             if (membership == null) {
@@ -99,14 +113,16 @@ public class MemberController {
                 System.out.println("Member not found.");
                 return;
             }
-            ValidationService.getInstance().validateName(name);
-            ValidationService.getInstance().validateEmail(email);
-            ValidationService.getInstance().validatePhone(phone);
+
+            validationService.validateName(name);
+            validationService.validateEmail(email);
+            validationService.validatePhone(phone);
 
             member.setName(name);
             member.setEmail(email);
             member.setPhone(phone);
             memberRepository.update(member);
+
             System.out.println("Member updated successfully.");
         } catch (Exception e) {
             System.out.println("Validation Error: " + e.getMessage());
