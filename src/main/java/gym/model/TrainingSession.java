@@ -9,16 +9,23 @@ public class TrainingSession {
     private LocalDateTime sessionDate;
     private int durationMinutes;
     private String type;
+    private SessionCategory category;
 
-    public TrainingSession() {}
+    public TrainingSession() {
+    }
 
     public TrainingSession(int id, int memberId, int trainerId, LocalDateTime sessionDate, int durationMinutes, String type) {
+        this(id, memberId, trainerId, sessionDate, durationMinutes, type, null);
+    }
+
+    public TrainingSession(int id, int memberId, int trainerId, LocalDateTime sessionDate, int durationMinutes, String type, SessionCategory category) {
         this.id = id;
         this.memberId = memberId;
         this.trainerId = trainerId;
         this.sessionDate = sessionDate;
         this.durationMinutes = durationMinutes;
         this.type = type;
+        this.category = category;
     }
 
     public int getId() {
@@ -53,12 +60,20 @@ public class TrainingSession {
         this.sessionDate = sessionDate;
     }
 
+    public LocalDateTime getDateTime() {
+        return getSessionDate();
+    }
+
     public int getDurationMinutes() {
         return durationMinutes;
     }
 
     public void setDurationMinutes(int durationMinutes) {
         this.durationMinutes = durationMinutes;
+    }
+
+    public int getDuration() {
+        return getDurationMinutes();
     }
 
     public String getType() {
@@ -68,4 +83,13 @@ public class TrainingSession {
     public void setType(String type) {
         this.type = type;
     }
+
+    public SessionCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(SessionCategory category) {
+        this.category = category;
+    }
 }
+

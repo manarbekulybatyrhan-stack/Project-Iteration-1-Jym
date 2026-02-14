@@ -13,7 +13,7 @@ public class CustomExceptions {
     public static class InvalidDurationException extends Exception {
         public InvalidDurationException(String message) { super(message); }
     }
-    public static class InvalidPriceException extends Exception { // Добавлено
+    public static class InvalidPriceException extends Exception {
         public InvalidPriceException(String message) { super(message); }
     }
     public static class UnauthorizedAccessException extends Exception {

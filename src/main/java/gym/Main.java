@@ -4,6 +4,9 @@ import gym.controller.MemberController;
 import gym.controller.MembershipController;
 import gym.controller.TrainerController;
 import gym.controller.TrainingSessionController;
+import gym.repository.UserRepository;
+import gym.repository.impl.UserRepositoryImpl;
+import gym.security.User;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -14,16 +17,21 @@ public class Main {
     private static TrainerController trainerController = new TrainerController();
     private static MemberController memberController = new MemberController();
     private static TrainingSessionController sessionController = new TrainingSessionController();
+    private static UserRepository userRepository = new UserRepositoryImpl();
     private static Scanner scanner = new Scanner(System.in);
+    private static User currentUser = null;
 
     public static void main(String[] args) {
         System.out.println("=== GYM MANAGEMENT SYSTEM ===");
 
+        if (!login()) {
+            System.out.println("Exiting...");
+            return;
+        }
+
         while (true) {
             displayMainMenu();
-
             int choice = scanner.nextInt();
-
             scanner.nextLine();
 
             switch (choice) {
@@ -40,7 +48,7 @@ public class Main {
                     sessionMenu();
                     break;
                 case 5:
-                    System.out.println("Exiting...");
+                    System.out.println("Logging out...");
                     return;
                 default:
                     System.out.println("Invalid choice. Try again.");
@@ -48,6 +56,23 @@ public class Main {
         }
     }
 
+    private static boolean login() {
+        System.out.println("\n--- LOGIN ---");
+        System.out.print("Username: ");
+        String username = scanner.nextLine();
+        System.out.print("Password: ");
+        String password = scanner.nextLine();
+
+        User user = userRepository.findByUsername(username);
+        if (user != null && user.getPassword().equals(password)) {
+            currentUser = user;
+            System.out.println("Welcome, " + username + "! Role: " + user.getRole());
+            return true;
+        } else {
+            System.out.println("Invalid username or password.");
+            return false;
+        }
+    }
 
     private static void displayMainMenu() {
         System.out.println("\n--- MAIN MENU ---");
@@ -58,7 +83,6 @@ public class Main {
         System.out.println("5. Exit");
         System.out.print("Enter choice: ");
     }
-
 
     private static void membershipMenu() {
         while (true) {
@@ -75,53 +99,41 @@ public class Main {
 
             switch (choice) {
                 case 1:
-                    System.out.print("Enter type (Basic/Premium/VIP): ");
+                    System.out.print("Enter type: ");
                     String type = scanner.nextLine();
-
+                    System.out.print("Enter category (e.g., BASIC, VIP): ");
+                    String category = scanner.nextLine();
                     System.out.print("Enter duration in months: ");
                     int duration = scanner.nextInt();
-
                     System.out.print("Enter price: ");
                     double price = scanner.nextDouble();
                     scanner.nextLine();
-
-                    membershipController.addMembership(type, duration, price);
-
+                    membershipController.addMembership(type, category, duration, price);
                     break;
-
                 case 2:
                     membershipController.displayAllMemberships();
-
                     break;
-
                 case 3:
                     System.out.print("Enter membership ID: ");
                     int id = scanner.nextInt();
                     scanner.nextLine();
-
                     System.out.print("Enter new type: ");
                     type = scanner.nextLine();
-
+                    System.out.print("Enter new category: ");
+                    category = scanner.nextLine();
                     System.out.print("Enter new duration: ");
                     duration = scanner.nextInt();
-
                     System.out.print("Enter new price: ");
                     price = scanner.nextDouble();
                     scanner.nextLine();
-
-                    membershipController.updateMembership(id, type, duration, price);
-                    
+                    membershipController.updateMembership(id, type, category, duration, price);
                     break;
-
                 case 4:
                     System.out.print("Enter membership ID: ");
                     id = scanner.nextInt();
                     scanner.nextLine();
-
                     membershipController.deleteMembership(id);
-
                     break;
-
                 case 5:
                     return;
                 default:
@@ -129,7 +141,6 @@ public class Main {
             }
         }
     }
-
 
     private static void trainerMenu() {
         while (true) {
@@ -148,55 +159,37 @@ public class Main {
                 case 1:
                     System.out.print("Enter name: ");
                     String name = scanner.nextLine();
-
                     System.out.print("Enter specialization: ");
                     String spec = scanner.nextLine();
-
                     System.out.print("Enter email: ");
                     String email = scanner.nextLine();
-
                     System.out.print("Enter phone: ");
                     String phone = scanner.nextLine();
-
                     trainerController.addTrainer(name, spec, email, phone);
-
                     break;
-
                 case 2:
                     trainerController.displayAllTrainers();
-
                     break;
-
                 case 3:
                     System.out.print("Enter trainer ID: ");
                     int id = scanner.nextInt();
                     scanner.nextLine();
-
                     System.out.print("Enter new name: ");
                     name = scanner.nextLine();
-
                     System.out.print("Enter new specialization: ");
                     spec = scanner.nextLine();
-
                     System.out.print("Enter new email: ");
                     email = scanner.nextLine();
-
                     System.out.print("Enter new phone: ");
                     phone = scanner.nextLine();
-
                     trainerController.updateTrainer(id, name, spec, email, phone);
-
                     break;
-
                 case 4:
                     System.out.print("Enter trainer ID: ");
-
                     id = scanner.nextInt();
                     scanner.nextLine();
                     trainerController.deleteTrainer(id);
-
                     break;
-
                 case 5:
                     return;
                 default:
@@ -204,7 +197,6 @@ public class Main {
             }
         }
     }
-
 
     private static void memberMenu() {
         while (true) {
@@ -225,64 +217,45 @@ public class Main {
                 case 1:
                     System.out.print("Enter name: ");
                     String name = scanner.nextLine();
-
                     System.out.print("Enter email: ");
                     String email = scanner.nextLine();
-
                     System.out.print("Enter phone: ");
                     String phone = scanner.nextLine();
-
                     System.out.print("Enter membership ID: ");
-                    int membershipId = scanner.nextInt();
+                    int mId = scanner.nextInt();
                     scanner.nextLine();
-
-                    memberController.registerMember(name, email, phone, membershipId);
-
+                    memberController.registerMember(name, email, phone, mId);
                     break;
-
                 case 2:
                     memberController.displayAllMembers();
-
                     break;
                 case 3:
                     memberController.displayActiveMembers();
-
                     break;
                 case 4:
                     System.out.print("Enter member ID: ");
-                    int memberId = scanner.nextInt();
+                    int id = scanner.nextInt();
                     scanner.nextLine();
-
-                    memberController.checkMembershipValidity(memberId);
-
+                    memberController.checkMembershipValidity(id);
                     break;
                 case 5:
                     System.out.print("Enter member ID: ");
-                    int id = scanner.nextInt();
+                    id = scanner.nextInt();
                     scanner.nextLine();
-
                     System.out.print("Enter new name: ");
                     name = scanner.nextLine();
-
                     System.out.print("Enter new email: ");
                     email = scanner.nextLine();
-                    
                     System.out.print("Enter new phone: ");
                     phone = scanner.nextLine();
                     memberController.updateMember(id, name, email, phone);
-
                     break;
-
                 case 6:
                     System.out.print("Enter member ID: ");
-
                     id = scanner.nextInt();
                     scanner.nextLine();
-
                     memberController.deleteMember(id);
-
                     break;
-
                 case 7:
                     return;
                 default:
@@ -290,7 +263,6 @@ public class Main {
             }
         }
     }
-
 
     private static void sessionMenu() {
         while (true) {
@@ -309,58 +281,42 @@ public class Main {
             switch (choice) {
                 case 1:
                     System.out.print("Enter member ID: ");
-                    int memberId = scanner.nextInt();
-                    
+                    int mId = scanner.nextInt();
                     System.out.print("Enter trainer ID: ");
-                    int trainerId = scanner.nextInt();
+                    int tId = scanner.nextInt();
                     scanner.nextLine();
-
-                    System.out.print("Enter session date and time (yyyy-MM-dd HH:mm): ");
-                    String dateTimeStr = scanner.nextLine();
-
-                    LocalDateTime dateTime = LocalDateTime.parse(
-                        dateTimeStr, 
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                    );
-
+                    System.out.print("Enter date and time (yyyy-MM-dd HH:mm): ");
+                    String dtStr = scanner.nextLine();
+                    LocalDateTime dt = LocalDateTime.parse(dtStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
                     System.out.print("Enter duration in minutes: ");
-                    int duration = scanner.nextInt();
+                    int dur = scanner.nextInt();
                     scanner.nextLine();
-
-                    System.out.print("Enter session type (Cardio/Strength/Yoga/etc): ");
+                    System.out.print("Enter session type: ");
                     String type = scanner.nextLine();
-
-                    sessionController.bookSession(memberId, trainerId, dateTime, duration, type);
-
+                    System.out.print("Enter category: ");
+                    String category = scanner.nextLine();
+                    sessionController.bookSession(mId, tId, dt, dur, type, category);
                     break;
-
                 case 2:
                     sessionController.displayAllSessions();
                     break;
                 case 3:
                     System.out.print("Enter member ID: ");
-                    memberId = scanner.nextInt();
+                    mId = scanner.nextInt();
                     scanner.nextLine();
-                    sessionController.displayMemberSessions(memberId);
-
+                    sessionController.displayMemberSessions(mId);
                     break;
-
                 case 4:
                     System.out.print("Enter trainer ID: ");
-                    trainerId = scanner.nextInt();
+                    tId = scanner.nextInt();
                     scanner.nextLine();
-
-                    sessionController.displayTrainerSessions(trainerId);
-                    
+                    sessionController.displayTrainerSessions(tId);
                     break;
-                    
                 case 5:
                     System.out.print("Enter session ID: ");
                     int id = scanner.nextInt();
                     scanner.nextLine();
-
                     sessionController.deleteSession(id);
-                    
                     break;
                 case 6:
                     return;
@@ -369,5 +325,4 @@ public class Main {
             }
         }
     }
-
 }
